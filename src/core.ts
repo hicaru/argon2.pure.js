@@ -289,18 +289,23 @@ function fillSegment(context: Context, position: Position, memory: Memory): void
 
         // 2 Creating a new block
         const index = Number(BigInt(context.laneLength) * refLane + BigInt(refIndex));
-        const currBlock = memory.getBlock(currOffset).clone();
         
+        // Важно: получаем новый блок, который будем модифицировать
+        const currBlock = memory.getBlock(currOffset).clone();
         const prevBlock = memory.getBlock(prevOffset);
         const refBlock = memory.getBlock(index);
         
+        // Вызываем fillBlock, который должен изменить currBlock
         if (context.config.version === Version.Version10 || pos.pass === 0) {
             fillBlock(prevBlock, refBlock, currBlock, false);
         } else {
             fillBlock(prevBlock, refBlock, currBlock, true);
         }
 
+        // Теперь нужно убедиться, что изменения сохраняются в memory
         memory.setBlock(currOffset, currBlock);
+        
+        // Увеличиваем смещения
         currOffset += 1;
         prevOffset += 1;
     }
@@ -479,6 +484,9 @@ function p(v: bigint[]): void {
 }
 
 
-function rotr64(w: bigint, c: number): bigint {
-    return (w >> BigInt(c)) | (w << BigInt(64 - c));
+export function rotr64(w: bigint, c: number): bigint {
+    const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+    const input = w & MASK_64;
+    
+    return ((input >> BigInt(c)) | ((input << BigInt(64 - c)) & MASK_64)) & MASK_64;
 }

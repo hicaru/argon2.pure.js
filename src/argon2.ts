@@ -57,7 +57,7 @@ export function verifyEncodedExt(
       decoded.variant,
       decoded.version
     );
-    
+
     return verifyRaw(pwd, decoded.salt, decoded.hash, config);
   } catch (e) {
     return false;
@@ -81,9 +81,9 @@ export function verifyRaw(
       config.variant,
       config.version
     );
-    
     const context = Context.new(extConfig, pwd, salt);
     const calculatedHash = run(context);
+    console.log(calculatedHash);
     
     return constantTimeEq(hash, calculatedHash);
   } catch (e) {

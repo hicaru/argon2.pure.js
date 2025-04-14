@@ -27,31 +27,27 @@ describe('Variant', () => {
     expect(VariantUtil.asUppercaseStr(Variant.Argon2id)).toBe("Argon2id");
   });
 
-  it('fromStr returns correct result', () => {
-    const result1 = VariantUtil.fromStr("Argon2d");
-    expect(result1.ok).toBe(true);
-    if (result1.ok) expect(result1.value).toBe(Variant.Argon2d);
-
-    const result2 = VariantUtil.fromStr("argon2i");
-    expect(result2.ok).toBe(true);
-    if (result2.ok) expect(result2.value).toBe(Variant.Argon2i);
-
-    const result3 = VariantUtil.fromStr("foobar");
-    expect(result3.ok).toBe(false);
-    if (!result3.ok) expect(result3.error).toBe(ErrorType.DecodingFail);
+  it('fromStr returns correct variant', () => {
+    expect(VariantUtil.fromStr("Argon2d")).toBe(Variant.Argon2d);
+    expect(VariantUtil.fromStr("argon2i")).toBe(Variant.Argon2i);
+    
+    try {
+      VariantUtil.fromStr("foobar");
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.DecodingFail);
+    }
   });
 
-  it('fromU32 returns correct result', () => {
-    const result1 = VariantUtil.fromU32(0);
-    expect(result1.ok).toBe(true);
-    if (result1.ok) expect(result1.value).toBe(Variant.Argon2d);
-
-    const result2 = VariantUtil.fromU32(1);
-    expect(result2.ok).toBe(true);
-    if (result2.ok) expect(result2.value).toBe(Variant.Argon2i);
-
-    const result3 = VariantUtil.fromU32(3);
-    expect(result3.ok).toBe(false);
-    if (!result3.ok) expect(result3.error).toBe(ErrorType.IncorrectType);
+  it('fromU32 returns correct variant', () => {
+    expect(VariantUtil.fromU32(0)).toBe(Variant.Argon2d);
+    expect(VariantUtil.fromU32(1)).toBe(Variant.Argon2i);
+    
+    try {
+      VariantUtil.fromU32(3);
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.IncorrectType);
+    }
   });
 });

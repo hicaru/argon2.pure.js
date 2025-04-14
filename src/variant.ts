@@ -1,5 +1,4 @@
 import { ErrorType } from './error';
-import { Result, Ok, Err } from './result';
 
 export enum Variant {
     Argon2d = 0,
@@ -32,28 +31,28 @@ export class VariantUtil {
         }
     }
 
-    static fromStr(str: string): Result<Variant> {
+    static fromStr(str: string): Variant {
         switch (str) {
             case "Argon2d":
             case "argon2d":
-                return Ok(Variant.Argon2d);
+                return Variant.Argon2d;
             case "Argon2i":
             case "argon2i":
-                return Ok(Variant.Argon2i);
+                return Variant.Argon2i;
             case "Argon2id":
             case "argon2id":
-                return Ok(Variant.Argon2id);
+                return Variant.Argon2id;
             default:
-                return Err(ErrorType.DecodingFail);
+                throw new Error(ErrorType.DecodingFail);
         }
     }
 
-    static fromU32(val: number): Result<Variant> {
+    static fromU32(val: number): Variant {
         switch (val) {
-            case 0: return Ok(Variant.Argon2d);
-            case 1: return Ok(Variant.Argon2i);
-            case 2: return Ok(Variant.Argon2id);
-            default: return Err(ErrorType.IncorrectType);
+            case 0: return Variant.Argon2d;
+            case 1: return Variant.Argon2i;
+            case 2: return Variant.Argon2id;
+            default: throw new Error(ErrorType.IncorrectType);
         }
     }
 }

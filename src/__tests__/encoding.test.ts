@@ -22,15 +22,10 @@ describe('Encoding', () => {
     const pwd = new TextEncoder().encode("password");
     const salt = new TextEncoder().encode("salt1234");
     
-    const contextResult = Context.new(config, pwd, salt);
-    expect(contextResult.ok).toBe(true);
-    
-    if (contextResult.ok) {
-      const context = contextResult.value;
-      const expected = "$argon2i$v=19$m=4096,t=3,p=1$c2FsdDEyMzQ$MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI";
-      const actual = encodeString(context, hash);
-      expect(actual).toBe(expected);
-    }
+    const context = Context.new(config, pwd, salt);
+    const expected = "$argon2i$v=19$m=4096,t=3,p=1$c2FsdDEyMzQ$MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI";
+    const actual = encodeString(context, hash);
+    expect(actual).toBe(expected);
   });
   
   it('encodeString with Argon2d returns correct string', () => {
@@ -49,15 +44,10 @@ describe('Encoding', () => {
     const pwd = new TextEncoder().encode("different-password");
     const salt = new TextEncoder().encode("othersalt");
     
-    const contextResult = Context.new(config, pwd, salt);
-    expect(contextResult.ok).toBe(true);
-    
-    if (contextResult.ok) {
-      const context = contextResult.value;
-      const expected = "$argon2d$v=19$m=8192,t=2,p=1$b3RoZXJzYWx0$MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI";
-      const actual = encodeString(context, hash);
-      expect(actual).toBe(expected);
-    }
+    const context = Context.new(config, pwd, salt);
+    const expected = "$argon2d$v=19$m=8192,t=2,p=1$b3RoZXJzYWx0$MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI";
+    const actual = encodeString(context, hash);
+    expect(actual).toBe(expected);
   });
   
   it('encodeString with Argon2id returns correct string', () => {
@@ -76,14 +66,9 @@ describe('Encoding', () => {
     const pwd = new TextEncoder().encode("third-password");
     const salt = new TextEncoder().encode("thirdsalt");
     
-    const contextResult = Context.new(config, pwd, salt);
-    expect(contextResult.ok).toBe(true);
-    
-    if (contextResult.ok) {
-      const context = contextResult.value;
-      const expected = "$argon2id$v=19$m=16384,t=5,p=4$dGhpcmRzYWx0$YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY";
-      const actual = encodeString(context, hash);
-      expect(actual).toBe(expected);
-    }
+    const context = Context.new(config, pwd, salt);
+    const expected = "$argon2id$v=19$m=16384,t=5,p=4$dGhpcmRzYWx0$YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY";
+    const actual = encodeString(context, hash);
+    expect(actual).toBe(expected);
   });
 });

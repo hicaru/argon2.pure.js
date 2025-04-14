@@ -21,7 +21,6 @@ describe('Block', () => {
     const lhs = Block.zero();
     const rhs = new Block();
     
-    // Set all values in rhs to 1
     for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
       rhs.set(i, BigInt(1));
     }
@@ -34,7 +33,6 @@ describe('Block', () => {
     const src = new Block();
     const dst = Block.zero();
     
-    // Set all values in src to 1
     for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
       src.set(i, BigInt(1));
     }
@@ -46,7 +44,6 @@ describe('Block', () => {
   it('clone clones block', () => {
     const orig = new Block();
     
-    // Set all values in orig to 1
     for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
       orig.set(i, BigInt(1));
     }
@@ -61,4 +58,3 @@ describe('Block', () => {
     expect(actual.equals(expected)).toBe(true);
   });
 });
-

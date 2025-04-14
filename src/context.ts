@@ -1,7 +1,6 @@
 import * as common from './common';
 import { Config } from './config';
 import { ErrorType } from './error';
-import { Result, Ok, Err } from './result';
 
 export class Context {
     private constructor(
@@ -13,60 +12,60 @@ export class Context {
         public segmentLength: number
     ) {}
 
-    static new(config: Config, pwd: Uint8Array, salt: Uint8Array): Result<Context> {
+    static new(config: Config, pwd: Uint8Array, salt: Uint8Array): Context {
         if (config.lanes < common.MIN_LANES) {
-            return Err(ErrorType.LanesTooFew);
+            throw new Error(ErrorType.LanesTooFew);
         } else if (config.lanes > common.MAX_LANES) {
-            return Err(ErrorType.LanesTooMany);
+            throw new Error(ErrorType.LanesTooMany);
         }
 
         const lanes = config.lanes;
         if (config.memCost < common.MIN_MEMORY) {
-            return Err(ErrorType.MemoryTooLittle);
+            throw new Error(ErrorType.MemoryTooLittle);
         } else if (config.memCost > common.MAX_MEMORY) {
-            return Err(ErrorType.MemoryTooMuch);
+            throw new Error(ErrorType.MemoryTooMuch);
         } else if (config.memCost < 8 * lanes) {
-            return Err(ErrorType.MemoryTooLittle);
+            throw new Error(ErrorType.MemoryTooLittle);
         }
 
         if (config.timeCost < common.MIN_TIME) {
-            return Err(ErrorType.TimeTooSmall);
+            throw new Error(ErrorType.TimeTooSmall);
         } else if (config.timeCost > common.MAX_TIME) {
-            return Err(ErrorType.TimeTooLarge);
+            throw new Error(ErrorType.TimeTooLarge);
         }
 
         const pwdLen = pwd.length;
         if (pwdLen < common.MIN_PWD_LENGTH) {
-            return Err(ErrorType.PwdTooShort);
+            throw new Error(ErrorType.PwdTooShort);
         } else if (pwdLen > common.MAX_PWD_LENGTH) {
-            return Err(ErrorType.PwdTooLong);
+            throw new Error(ErrorType.PwdTooLong);
         }
 
         const saltLen = salt.length;
         if (saltLen < common.MIN_SALT_LENGTH) {
-            return Err(ErrorType.SaltTooShort);
+            throw new Error(ErrorType.SaltTooShort);
         } else if (saltLen > common.MAX_SALT_LENGTH) {
-            return Err(ErrorType.SaltTooLong);
+            throw new Error(ErrorType.SaltTooLong);
         }
 
         const secretLen = config.secret.length;
         if (secretLen < common.MIN_SECRET_LENGTH) {
-            return Err(ErrorType.SecretTooShort);
+            throw new Error(ErrorType.SecretTooShort);
         } else if (secretLen > common.MAX_SECRET_LENGTH) {
-            return Err(ErrorType.SecretTooLong);
+            throw new Error(ErrorType.SecretTooLong);
         }
 
         const adLen = config.ad.length;
         if (adLen < common.MIN_AD_LENGTH) {
-            return Err(ErrorType.AdTooShort);
+            throw new Error(ErrorType.AdTooShort);
         } else if (adLen > common.MAX_AD_LENGTH) {
-            return Err(ErrorType.AdTooLong);
+            throw new Error(ErrorType.AdTooLong);
         }
 
         if (config.hashLength < common.MIN_HASH_LENGTH) {
-            return Err(ErrorType.OutputTooShort);
+            throw new Error(ErrorType.OutputTooShort);
         } else if (config.hashLength > common.MAX_HASH_LENGTH) {
-            return Err(ErrorType.OutputTooLong);
+            throw new Error(ErrorType.OutputTooLong);
         }
 
         let memoryBlocks = config.memCost;
@@ -78,13 +77,13 @@ export class Context {
         memoryBlocks = segmentLength * (lanes * common.SYNC_POINTS);
         const laneLength = segmentLength * common.SYNC_POINTS;
 
-        return Ok(new Context(
+        return new Context(
             config.clone(),
             laneLength,
             memoryBlocks,
             pwd,
             salt,
             segmentLength
-        ));
+        );
     }
 }

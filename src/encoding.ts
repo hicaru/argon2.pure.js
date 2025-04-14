@@ -1,7 +1,6 @@
 import { Context } from './context';
 import { Decoded } from './decoded';
 import { ErrorType } from './error';
-import { Result, Ok, Err } from './result';
 import { Variant, VariantUtil } from './variant';
 import { Version, VersionUtil } from './version';
 
@@ -20,30 +19,20 @@ export function base64Len(length: number): number {
     }
 }
 
-export function decodeString(encoded: string): Result<Decoded> {
+export function decodeString(encoded: string): Decoded {
     const items = encoded.split('$');
     
     if (items.length === 6) {
-        const emptyResult = decodeEmpty(items[0]);
-        if (!emptyResult.ok) return emptyResult;
-
-        const variantResult = decodeVariant(items[1]);
-        if (!variantResult.ok) return variantResult;
-        const variant = variantResult.value;
-
-        const versionResult = decodeVersion(items[2]);
-        if (!versionResult.ok) return versionResult;
-        const version = versionResult.value;
-
-        const optionsResult = decodeOptions(items[3]);
-        if (!optionsResult.ok) return optionsResult;
-        const options = optionsResult.value;
+        decodeEmpty(items[0]);
+        const variant = decodeVariant(items[1]);
+        const version = decodeVersion(items[2]);
+        const options = decodeOptions(items[3]);
 
         try {
             const salt = base64Decode(items[4]);
             const hash = base64Decode(items[5]);
 
-            return Ok(new Decoded(
+            return new Decoded(
                 variant,
                 version,
                 options.memCost,
@@ -51,27 +40,20 @@ export function decodeString(encoded: string): Result<Decoded> {
                 options.parallelism,
                 salt,
                 hash
-            ));
+            );
         } catch {
-            return Err(ErrorType.DecodingFail);
+            throw new Error(ErrorType.DecodingFail);
         }
     } else if (items.length === 5) {
-        const emptyResult = decodeEmpty(items[0]);
-        if (!emptyResult.ok) return emptyResult;
-
-        const variantResult = decodeVariant(items[1]);
-        if (!variantResult.ok) return variantResult;
-        const variant = variantResult.value;
-
-        const optionsResult = decodeOptions(items[2]);
-        if (!optionsResult.ok) return optionsResult;
-        const options = optionsResult.value;
+        decodeEmpty(items[0]);
+        const variant = decodeVariant(items[1]);
+        const options = decodeOptions(items[2]);
 
         try {
             const salt = base64Decode(items[3]);
             const hash = base64Decode(items[4]);
 
-            return Ok(new Decoded(
+            return new Decoded(
                 variant,
                 Version.Version10,
                 options.memCost,
@@ -79,80 +61,75 @@ export function decodeString(encoded: string): Result<Decoded> {
                 options.parallelism,
                 salt,
                 hash
-            ));
+            );
         } catch {
-            return Err(ErrorType.DecodingFail);
+            throw new Error(ErrorType.DecodingFail);
         }
     } else {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
 }
 
-function decodeEmpty(str: string): Result<void> {
+function decodeEmpty(str: string): void {
     if (str === "") {
-        return Ok(undefined);
+        return; 
     } else {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
 }
 
-function decodeOptions(str: string): Result<Options> {
+function decodeOptions(str: string): Options {
     const items = str.split(',');
     if (items.length === 3) {
-        const memResult = decodeOption(items[0], "m");
-        if (!memResult.ok) return memResult;
-        
-        const timeResult = decodeOption(items[1], "t");
-        if (!timeResult.ok) return timeResult;
-        
-        const parallelismResult = decodeOption(items[2], "p");
-        if (!parallelismResult.ok) return parallelismResult;
+        const memCost = decodeOption(items[0], "m");
+        const timeCost = decodeOption(items[1], "t");
+        const parallelism = decodeOption(items[2], "p");
 
-        return Ok({
-            memCost: memResult.value,
-            timeCost: timeResult.value,
-            parallelism: parallelismResult.value
-        });
+        return {
+            memCost,
+            timeCost,
+            parallelism
+        };
     } else {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
 }
 
-function decodeOption(str: string, name: string): Result<number> {
+function decodeOption(str: string, name: string): number {
     const items = str.split('=');
     if (items.length === 2) {
         if (items[0] === name) {
             return decodeU32(items[1]);
         } else {
-            return Err(ErrorType.DecodingFail);
+            throw new Error(ErrorType.DecodingFail);
         }
     } else {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
 }
 
-function decodeU32(str: string): Result<number> {
+function decodeU32(str: string): number {
     const num = parseInt(str, 10);
     if (isNaN(num)) {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
-    return Ok(num);
+    return num;
 }
 
-function decodeVariant(str: string): Result<Variant> {
+function decodeVariant(str: string): Variant {
     return VariantUtil.fromStr(str);
 }
 
-function decodeVersion(str: string): Result<Version> {
+function decodeVersion(str: string): Version {
     const items = str.split('=');
     if (items.length === 2) {
         if (items[0] === "v") {
             return VersionUtil.fromStr(items[1]);
         } else {
-            return Err(ErrorType.DecodingFail);
+            throw new Error(ErrorType.DecodingFail);
         }
     } else {
-        return Err(ErrorType.DecodingFail);
+        throw new Error(ErrorType.DecodingFail);
     }
 }
 

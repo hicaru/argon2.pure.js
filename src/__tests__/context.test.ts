@@ -19,18 +19,15 @@ describe('Context', () => {
     );
     const pwd = new TextEncoder().encode("password");
     const salt = new TextEncoder().encode("somesalt");
-    const result = Context.new(config, pwd, salt);
     
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      const context = result.value;
-      expect(context.config).toEqual(config);
-      expect(context.pwd).toEqual(pwd);
-      expect(context.salt).toEqual(salt);
-      expect(context.memoryBlocks).toBe(4096);
-      expect(context.segmentLength).toBe(256);
-      expect(context.laneLength).toBe(1024);
-    }
+    const context = Context.new(config, pwd, salt);
+    
+    expect(context.config).toEqual(config);
+    expect(context.pwd).toEqual(pwd);
+    expect(context.salt).toEqual(salt);
+    expect(context.memoryBlocks).toBe(4096);
+    expect(context.segmentLength).toBe(256);
+    expect(context.laneLength).toBe(1024);
   });
 
   it('new with too little mem_cost returns correct error', () => {
@@ -44,10 +41,12 @@ describe('Context', () => {
       Variant.Argon2id,
       Version.Version13
     );
-    const result = Context.new(config, new Uint8Array(8), new Uint8Array(8));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBe(ErrorType.MemoryTooLittle);
+    
+    try {
+      Context.new(config, new Uint8Array(8), new Uint8Array(8));
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.MemoryTooLittle);
     }
   });
 
@@ -62,10 +61,12 @@ describe('Context', () => {
       Variant.Argon2id,
       Version.Version13
     );
-    const result = Context.new(config, new Uint8Array(8), new Uint8Array(8));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBe(ErrorType.MemoryTooLittle);
+    
+    try {
+      Context.new(config, new Uint8Array(8), new Uint8Array(8));
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.MemoryTooLittle);
     }
   });
 
@@ -80,20 +81,24 @@ describe('Context', () => {
       Variant.Argon2id,
       Version.Version13
     );
-    const result = Context.new(config, new Uint8Array(8), new Uint8Array(8));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBe(ErrorType.TimeTooSmall);
+    
+    try {
+      Context.new(config, new Uint8Array(8), new Uint8Array(8));
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.TimeTooSmall);
     }
   });
 
   it('new with too short salt returns correct error', () => {
     const config = new Config();
     const salt = new Uint8Array(7); // too short
-    const result = Context.new(config, new Uint8Array(8), salt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBe(ErrorType.SaltTooShort);
+    
+    try {
+      Context.new(config, new Uint8Array(8), salt);
+      expect.fail('Expected error was not thrown');
+    } catch (error: any) {
+      expect(error.message).toBe(ErrorType.SaltTooShort);
     }
   });
 });

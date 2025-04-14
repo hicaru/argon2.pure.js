@@ -8,6 +8,5 @@ export * from './decoded';
 export * from './encoding';
 export * from './error';
 export * from './memory';
-export * from './result';
 export * from './variant';
 export * from './version';

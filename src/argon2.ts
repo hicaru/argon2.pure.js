@@ -3,7 +3,6 @@ import { Context } from './context';
 import * as core from './core';
 import * as encoding from './encoding';
 import { Memory } from './memory';
-import { Result, Ok } from './result';
 import { Variant, VariantUtil } from './variant';
 import { Version } from './version';
 
@@ -25,79 +24,71 @@ export function encodedLen(
            encoding.base64Len(hashLen);
 }
 
-export function hashEncoded(pwd: Uint8Array, salt: Uint8Array, config: Config): Result<string> {
-    const contextResult = Context.new(config, pwd, salt);
-    if (!contextResult.ok) return contextResult;
-    
-    const context = contextResult.value;
-    const hash = run(context);
-    const encoded = encoding.encodeString(context, hash);
-    
-    return Ok(encoded);
+export function hashEncoded(pwd: Uint8Array, salt: Uint8Array, config: Config): string {
+  const context = Context.new(config, pwd, salt);
+  const hash = run(context);
+  return encoding.encodeString(context, hash);
 }
 
-export function hashRaw(pwd: Uint8Array, salt: Uint8Array, config: Config): Result<Uint8Array> {
-    const contextResult = Context.new(config, pwd, salt);
-    if (!contextResult.ok) return contextResult;
-    
-    const context = contextResult.value;
-    const hash = run(context);
-    
-    return Ok(hash);
+export function hashRaw(pwd: Uint8Array, salt: Uint8Array, config: Config): Uint8Array {
+  const context = Context.new(config, pwd, salt);
+  return run(context);
 }
 
-export function verifyEncoded(encoded: string, pwd: Uint8Array): Result<boolean> {
-    return verifyEncodedExt(encoded, pwd, new Uint8Array(), new Uint8Array());
+export function verifyEncoded(encoded: string, pwd: Uint8Array): boolean {
+  return verifyEncodedExt(encoded, pwd, new Uint8Array(), new Uint8Array());
 }
 
 export function verifyEncodedExt(
-    encoded: string, 
-    pwd: Uint8Array, 
-    secret: Uint8Array, 
-    ad: Uint8Array
-): Result<boolean> {
-    const decodedResult = encoding.decodeString(encoded);
-    if (!decodedResult.ok) return decodedResult;
-    
-    const decoded = decodedResult.value;
+  encoded: string, 
+  pwd: Uint8Array, 
+  secret: Uint8Array, 
+  ad: Uint8Array
+): boolean {
+  try {
+    const decoded = encoding.decodeString(encoded);
     const config = new Config(
-        ad,
-        decoded.hash.length,
-        decoded.parallelism,
-        decoded.memCost,
-        secret,
-        decoded.timeCost,
-        decoded.variant,
-        decoded.version
+      ad,
+      decoded.hash.length,
+      decoded.parallelism,
+      decoded.memCost,
+      secret,
+      decoded.timeCost,
+      decoded.variant,
+      decoded.version
     );
     
     return verifyRaw(pwd, decoded.salt, decoded.hash, config);
+  } catch (e) {
+    return false;
+  }
 }
 
 export function verifyRaw(
-    pwd: Uint8Array, 
-    salt: Uint8Array, 
-    hash: Uint8Array, 
-    config: Config
-): Result<boolean> {
+  pwd: Uint8Array, 
+  salt: Uint8Array, 
+  hash: Uint8Array, 
+  config: Config
+): boolean {
+  try {
     const extConfig = new Config(
-        config.ad,
-        hash.length,
-        config.lanes,
-        config.memCost,
-        config.secret,
-        config.timeCost,
-        config.variant,
-        config.version
+      config.ad,
+      hash.length,
+      config.lanes,
+      config.memCost,
+      config.secret,
+      config.timeCost,
+      config.variant,
+      config.version
     );
     
-    const contextResult = Context.new(extConfig, pwd, salt);
-    if (!contextResult.ok) return contextResult;
-    
-    const context = contextResult.value;
+    const context = Context.new(extConfig, pwd, salt);
     const calculatedHash = run(context);
     
-    return Ok(constantTimeEq(hash, calculatedHash));
+    return constantTimeEq(hash, calculatedHash);
+  } catch (e) {
+    return false;
+  }
 }
 
 function run(context: Context): Uint8Array {

@@ -1,0 +1,26 @@
+{
+  "name": "argon2-pure-js",
+  "version": "0.0.1",
+  "description": "Pure JavaScript implementation of Argon2",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": ["dist"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "bun run build"
+  },
+  "keywords": ["argon2", "crypto", "hashing", "pure-js"],
+  "author": "Rinat",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "^1.2.9",
+    "@vitest/coverage-v8": "^3.1.1",
+    "vitest": "^3.1.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

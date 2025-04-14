@@ -1,3 +1,13 @@
-export function argon2Hash(password: string, salt: string): Promise<string> {
-  return Promise.resolve("hashed");
-}
+export * from './argon2';
+export * from './block';
+export * from './common';
+export * from './config';
+export * from './context';
+export * from './core';
+export * from './decoded';
+export * from './encoding';
+export * from './error';
+export * from './memory';
+export * from './result';
+export * from './variant';
+export * from './version';

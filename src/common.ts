@@ -1,0 +1,24 @@
+export const MIN_LANES = 1;
+export const MAX_LANES = 0x00FFFFFF;
+export const SYNC_POINTS = 4;
+export const MIN_HASH_LENGTH = 4;
+export const MAX_HASH_LENGTH = 0xFFFFFFFF;
+export const MIN_MEMORY = 2 * SYNC_POINTS;
+export const MAX_MEMORY = 0xFFFFFFFF;
+export const MIN_TIME = 1;
+export const MAX_TIME = 0xFFFFFFFF;
+export const MIN_PWD_LENGTH = 0;
+export const MAX_PWD_LENGTH = 0xFFFFFFFF;
+export const MIN_AD_LENGTH = 0;
+export const MAX_AD_LENGTH = 0xFFFFFFFF;
+export const MIN_SALT_LENGTH = 8;
+export const MAX_SALT_LENGTH = 0xFFFFFFFF;
+export const MIN_SECRET_LENGTH = 0;
+export const MAX_SECRET_LENGTH = 0xFFFFFFFF;
+export const BLOCK_SIZE = 1024;
+export const QWORDS_IN_BLOCK = BLOCK_SIZE / 8;
+export const ADDRESSES_IN_BLOCK = 128;
+export const PREHASH_DIGEST_LENGTH = 64;
+export const PREHASH_SEED_LENGTH = 72;
+export const BLAKE2B_OUT_LENGTH = 64;
+

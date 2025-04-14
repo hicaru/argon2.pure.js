@@ -6,6 +6,8 @@ import { Variant } from './variant';
 import { Version } from './version';
 import { blake2b as blake2bJs } from 'blakejs';
 
+const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+
 /**
  * Position of the block currently being operated on.
  */
@@ -80,10 +82,10 @@ function blake2b(out: Uint8Array, input: Uint8Array[]): void {
 /**
  * Implements the f_bla_mka function from the Rust version.
  */
-function fBlaMka(x: bigint, y: bigint): bigint {
+export function fBlaMka(x: bigint, y: bigint): bigint {
     const m = BigInt(0xFFFFFFFF);
     const xy = (x & m) * (y & m);
-    return x + y + xy + xy;
+    return (x + y + xy + xy) & MASK_64;
 }
 
 /**
@@ -483,10 +485,7 @@ function p(v: bigint[]): void {
     g([v[3], v[4], v[9], v[14]]);
 }
 
-
 export function rotr64(w: bigint, c: number): bigint {
-    const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
     const input = w & MASK_64;
-    
     return ((input >> BigInt(c)) | ((input << BigInt(64 - c)) & MASK_64)) & MASK_64;
 }

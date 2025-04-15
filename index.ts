@@ -10,4 +10,3 @@ export * from './src/error';
 export * from './src/memory';
 export * from './src/variant';
 export * from './src/version';
-

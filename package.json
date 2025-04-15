@@ -1,7 +1,7 @@
 {
-  "name": "argon2-pure-js",
+  "name": "@hicaru/argon2-pure.js",
   "version": "0.0.1",
-  "description": "Pure JavaScript implementation of Argon2",
+  "description": "Pure JavaScript implementation of Argon2 password hashing algorithm",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,11 +11,31 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
-    "build:watch": "tsc --watch"
+    "build:watch": "tsc --watch",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": ["argon2", "crypto", "hashing", "pure-js"],
+  "keywords": [
+    "argon2", 
+    "crypto", 
+    "hashing", 
+    "pure-js", 
+    "password", 
+    "security", 
+    "cryptography", 
+    "argon2d", 
+    "argon2i", 
+    "argon2id"
+  ],
   "author": "Rinat",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hicaru/argon2-pure.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hicaru/argon2-pure.js/issues"
+  },
+  "homepage": "https://github.com/hicaru/argon2-pure.js#readme",
   "devDependencies": {
     "@types/bun": "^1.2.9",
     "@vitest/coverage-v8": "^3.1.1",
@@ -26,5 +46,8 @@
   },
   "dependencies": {
     "blakejs": "^1.2.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

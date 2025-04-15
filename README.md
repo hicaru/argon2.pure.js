@@ -1,8 +1,8 @@
-# argon2.pure.js
+# @hicaru/argon2-pure.js
 
 A pure TypeScript/JavaScript implementation of the [Argon2](https://github.com/P-H-C/phc-winner-argon2) password hashing algorithm. This implementation provides full support for Argon2d, Argon2i, and Argon2id variants with no native code dependencies.
 
-[![NPM package](https://img.shields.io/npm/v/argon2-pure.svg)](https://www.npmjs.com/package/argon2-pure)
+[![NPM package](https://img.shields.io/npm/v/@hicaru/argon2-pure.js.svg)](https://www.npmjs.com/package/@hicaru/argon2-pure.js)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features
@@ -21,9 +21,7 @@ A pure TypeScript/JavaScript implementation of the [Argon2](https://github.com/P
 ## Installation
 
 ```bash
-bun add argon2-pure.js
-npm install argon2-pure.js
-yarn add argon2-pure.js
+npm install @hicaru/argon2-pure.js
 ```
 
 ## Usage
@@ -36,7 +34,7 @@ import {
   verifyEncoded, 
   Config, 
   Variant 
-} from 'argon2-pure';
+} from '@hicaru/argon2-pure.js';
 
 // Create a hash with default parameters (Argon2id)
 const password = new TextEncoder().encode("mySecurePassword");
@@ -61,7 +59,7 @@ import {
   Config, 
   Variant, 
   Version 
-} from 'argon2-pure';
+} from '@hicaru/argon2-pure.js';
 
 // Configure custom parameters
 const config = new Config(
@@ -96,7 +94,7 @@ console.log(isValid); // true
 The library provides several predefined configurations:
 
 ```typescript
-import { Config } from 'argon2-pure';
+import { Config } from '@hicaru/argon2-pure.js';
 
 // Original Argon2 paper configuration
 const originalConfig = Config.original();
@@ -226,6 +224,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## References
 
-- [Argon2 GitHub Repository](https://github.com/hicaru/argon2.pure.js)
+- [Argon2 GitHub Repository](https://github.com/P-H-C/phc-winner-argon2)
 - [RFC 9106: Argon2 Memory-Hard Function for Password Hashing and Proof-of-Work Applications](https://datatracker.ietf.org/doc/html/rfc9106)
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)

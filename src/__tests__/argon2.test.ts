@@ -41,31 +41,30 @@ describe('Argon2d', () => {
         expect(result).toBe(0x80000001fffffffen);
     });
 
-    // it('nextAddresses basic functionality test', () => {
-    //     const addressBlock = Block.zero();
-    //     const inputBlock = Block.zero();
-    //     const zeroBlock = Block.zero();
+    it('nextAddresses basic functionality test', () => {
+        const addressBlock = Block.zero();
+        const inputBlock = Block.zero();
+        const zeroBlock = Block.zero();
         
-    //     inputBlock.set(0, BigInt(123));
+        inputBlock.set(0, BigInt(123));
         
-    //     nextAddresses(addressBlock, inputBlock, zeroBlock);
-    //     console.log(inputBlock);
+        nextAddresses(addressBlock, inputBlock, zeroBlock);
         
-    //     expect(inputBlock.get(6)).toBe(BigInt(1));
+        expect(inputBlock.get(6)).toBe(BigInt(1));
         
-    //     let isZero = true;
-    //     for (let i = 0; i < 128; i++) {
-    //         if (addressBlock.get(i) !== BigInt(0)) {
-    //             isZero = false;
-    //             break;
-    //         }
-    //     }
-    //     expect(isZero).toBe(false);
-        
-    //     console.log("addressBlock[0] =", addressBlock.get(0));
-    //     console.log("addressBlock[1] =", addressBlock.get(1));
-    //     console.log("addressBlock[2] =", addressBlock.get(2));
-    // });
+        let isZero = true;
+        for (let i = 0; i < 128; i++) {
+            if (addressBlock.get(i) !== BigInt(0)) {
+                isZero = false;
+                break;
+            }
+        }
+        expect(isZero).toBe(false);
+
+        expect(addressBlock.get(0)).toBe(7015158763576374027n);
+        expect(addressBlock.get(1)).toBe(7976266390802038990n);
+        expect(addressBlock.get(2)).toBe(3130275155431555618n);
+    });
 
     it('should modify the nextBlock', () => {
         const prevBlock = new Block();

@@ -28,22 +28,22 @@ export function decodeString(encoded: string): Decoded {
         const version = decodeVersion(items[2]);
         const options = decodeOptions(items[3]);
 
-        try {
-            const salt = base64Decode(items[4]);
-            const hash = base64Decode(items[5]);
+        const salt = base64Decode(items[4]);
+        const hash = base64Decode(items[5]);
 
-            return new Decoded(
-                variant,
-                version,
-                options.memCost,
-                options.timeCost,
-                options.parallelism,
-                salt,
-                hash
-            );
-        } catch {
+        if (hash.length === 0) {
             throw new Error(ErrorType.DecodingFail);
         }
+
+        return new Decoded(
+            variant,
+            version,
+            options.memCost,
+            options.timeCost,
+            options.parallelism,
+            salt,
+            hash
+        );
     } else if (items.length === 5) {
         decodeEmpty(items[0]);
         const variant = decodeVariant(items[1]);
@@ -134,7 +134,11 @@ function decodeVersion(str: string): Version {
 }
 
 export function encodeString(context: Context, hash: Uint8Array): string {
-    return `$${VariantUtil.asLowercaseStr(context.config.variant)}$v=${context.config.version}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
+    if (context.config.version === Version.Version10) {
+        return `$${VariantUtil.asLowercaseStr(context.config.variant)}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
+    } else {
+        return `$${VariantUtil.asLowercaseStr(context.config.variant)}$v=${context.config.version}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
+    }
 }
 
 export function numLen(number: number): number {

@@ -8,7 +8,7 @@ import {
     verifyEncoded, 
     encodedLen, 
     ErrorType 
-} from '../index';
+} from '../../index';
 
 function bytesToHex(bytes: Uint8Array): string {
     return Array.from(bytes)

@@ -1,0 +1,1281 @@
+Project Path: argon2-pure-js
+
+Source Tree:
+
+```txt
+argon2-pure-js
+├── index.ts
+└── src
+    ├── argon2.ts
+    ├── block.ts
+    ├── common.ts
+    ├── config.ts
+    ├── context.ts
+    ├── core.ts
+    ├── decoded.ts
+    ├── encoding.ts
+    ├── error.ts
+    ├── memory.ts
+    ├── variant.ts
+    └── version.ts
+
+```
+
+`argon2-pure-js/index.ts`:
+
+```ts
+export * from './src/argon2';
+export * from './src/block';
+export * from './src/common';
+export * from './src/config';
+export * from './src/context';
+export * from './src/core';
+export * from './src/decoded';
+export * from './src/encoding';
+export * from './src/error';
+export * from './src/memory';
+export * from './src/variant';
+export * from './src/version';
+
+
+```
+
+`argon2-pure-js/src/argon2.ts`:
+
+```ts
+import { Config } from './config';
+import { Context } from './context';
+import * as core from './core';
+import * as encoding from './encoding';
+import { Memory } from './memory';
+import { Variant, VariantUtil } from './variant';
+import { Version } from './version';
+
+export function encodedLen(
+    variant: Variant,
+    memCost: number,
+    timeCost: number,
+    parallelism: number,
+    saltLen: number,
+    hashLen: number
+): number {
+    return ("$$v=$m=,t=,p=$$".length) +
+           (VariantUtil.asLowercaseStr(variant).length) +
+           encoding.numLen(Version.Version13) +
+           encoding.numLen(memCost) +
+           encoding.numLen(timeCost) +
+           encoding.numLen(parallelism) +
+           encoding.base64Len(saltLen) +
+           encoding.base64Len(hashLen);
+}
+
+export function hashEncoded(pwd: Uint8Array, salt: Uint8Array, config: Config): string {
+  const context = Context.new(config, pwd, salt);
+  const hash = run(context);
+  return encoding.encodeString(context, hash);
+}
+
+export function hashRaw(pwd: Uint8Array, salt: Uint8Array, config: Config): Uint8Array {
+  const context = Context.new(config, pwd, salt);
+  return run(context);
+}
+
+export function verifyEncoded(encoded: string, pwd: Uint8Array): boolean {
+  return verifyEncodedExt(encoded, pwd, new Uint8Array(), new Uint8Array());
+}
+
+export function verifyEncodedExt(
+  encoded: string, 
+  pwd: Uint8Array, 
+  secret: Uint8Array, 
+  ad: Uint8Array
+): boolean {
+  try {
+    const decoded = encoding.decodeString(encoded);
+    const config = new Config(
+      ad,
+      decoded.hash.length,
+      decoded.parallelism,
+      decoded.memCost,
+      secret,
+      decoded.timeCost,
+      decoded.variant,
+      decoded.version
+    );
+
+    return verifyRaw(pwd, decoded.salt, decoded.hash, config);
+  } catch (e) {
+    return false;
+  }
+}
+
+export function verifyRaw(
+  pwd: Uint8Array, 
+  salt: Uint8Array, 
+  hash: Uint8Array, 
+  config: Config
+): boolean {
+  try {
+    const extConfig = new Config(
+      config.ad,
+      hash.length,
+      config.lanes,
+      config.memCost,
+      config.secret,
+      config.timeCost,
+      config.variant,
+      config.version
+    );
+    const context = Context.new(extConfig, pwd, salt);
+    const calculatedHash = run(context);
+    
+    return constantTimeEq(hash, calculatedHash);
+  } catch (e) {
+    return false;
+  }
+}
+
+function run(context: Context): Uint8Array {
+    const memory = new Memory(context.config.lanes, context.laneLength);
+    core.initialize(context, memory);
+    core.fillMemoryBlocks(context, memory);
+    return core.finalize(context, memory);
+}
+
+function constantTimeEq(a: Uint8Array, b: Uint8Array): boolean {
+    if (a.length !== b.length) return false;
+    
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+        result |= a[i] ^ b[i];
+    }
+    
+    return result === 0;
+}
+
+```
+
+`argon2-pure-js/src/block.ts`:
+
+```ts
+import * as common from './common';
+import { MASK_64 } from './core';
+
+
+export class Block {
+    private data: BigUint64Array;
+
+    constructor(data?: BigUint64Array) {
+        this.data = data || new BigUint64Array(common.QWORDS_IN_BLOCK);
+    }
+
+    asU8(): Uint8Array {
+        return new Uint8Array(this.data.buffer);
+    }
+
+    asU8Mut(): Uint8Array {
+        return new Uint8Array(this.data.buffer);
+    }
+
+    copyTo(dst: Block): void {
+        const newData = new BigUint64Array(common.QWORDS_IN_BLOCK);
+        for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
+            newData[i] = this.data[i];
+        }
+        dst.data = newData;
+    }
+
+    static zero(): Block {
+        return new Block();
+    }
+
+    bitwiseXor(rhs: Block): void {
+        for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
+            this.data[i] = (this.data[i] ^ rhs.data[i]) & MASK_64;
+        }
+    }
+
+    clone(): Block {
+        const newData = new BigUint64Array(common.QWORDS_IN_BLOCK);
+        for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
+            newData[i] = this.data[i];
+        }
+        return new Block(newData);
+    }
+
+    get(index: number): bigint {
+        return this.data[index];
+    }
+
+    set(index: number, value: bigint): void {
+        this.data[index] = value & MASK_64;
+    }
+
+    equals(other: Block): boolean {
+        for (let i = 0; i < common.QWORDS_IN_BLOCK; i++) {
+            if (this.data[i] !== other.data[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+```
+
+`argon2-pure-js/src/common.ts`:
+
+```ts
+export const MIN_LANES = 1;
+export const MAX_LANES = 0x00FFFFFF;
+export const SYNC_POINTS = 4;
+export const MIN_HASH_LENGTH = 4;
+export const MAX_HASH_LENGTH = 0xFFFFFFFF;
+export const MIN_MEMORY = 2 * SYNC_POINTS;
+export const MAX_MEMORY = 0xFFFFFFFF;
+export const MIN_TIME = 1;
+export const MAX_TIME = 0xFFFFFFFF;
+export const MIN_PWD_LENGTH = 0;
+export const MAX_PWD_LENGTH = 0xFFFFFFFF;
+export const MIN_AD_LENGTH = 0;
+export const MAX_AD_LENGTH = 0xFFFFFFFF;
+export const MIN_SALT_LENGTH = 8;
+export const MAX_SALT_LENGTH = 0xFFFFFFFF;
+export const MIN_SECRET_LENGTH = 0;
+export const MAX_SECRET_LENGTH = 0xFFFFFFFF;
+export const BLOCK_SIZE = 1024;
+export const QWORDS_IN_BLOCK = BLOCK_SIZE / 8;
+export const ADDRESSES_IN_BLOCK = 128;
+export const PREHASH_DIGEST_LENGTH = 64;
+export const PREHASH_SEED_LENGTH = 72;
+export const BLAKE2B_OUT_LENGTH = 64;
+
+
+```
+
+`argon2-pure-js/src/config.ts`:
+
+```ts
+import { Variant } from './variant';
+import { Version } from './version';
+
+export class Config {
+    constructor(
+        public ad: Uint8Array = new Uint8Array(),
+        public hashLength: number = 32,
+        public lanes: number = 1,
+        public memCost: number = 19 * 1024,
+        public secret: Uint8Array = new Uint8Array(),
+        public timeCost: number = 2,
+        public variant: Variant = Variant.Argon2id,
+        public version: Version = Version.Version13
+    ) {}
+
+    static original(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            4096,
+            new Uint8Array(),
+            3,
+            Variant.Argon2i,
+            Version.Version13
+        );
+    }
+
+    static owasp1(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            47104,
+            new Uint8Array(),
+            1,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    static owasp2(): Config {
+        return new Config();
+    }
+
+    static owasp3(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            12288,
+            new Uint8Array(),
+            3,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    static owasp4(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            9216,
+            new Uint8Array(),
+            4,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    static owasp5(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            7168,
+            new Uint8Array(),
+            5,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    static rfc9106(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            2097152,
+            new Uint8Array(),
+            1,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    static rfc9106LowMem(): Config {
+        return new Config(
+            new Uint8Array(),
+            32,
+            1,
+            65536,
+            new Uint8Array(),
+            3,
+            Variant.Argon2id,
+            Version.Version13
+        );
+    }
+
+    clone(): Config {
+        return new Config(
+            new Uint8Array(this.ad),
+            this.hashLength,
+            this.lanes,
+            this.memCost,
+            new Uint8Array(this.secret),
+            this.timeCost,
+            this.variant,
+            this.version
+        );
+    }
+}
+
+```
+
+`argon2-pure-js/src/context.ts`:
+
+```ts
+import * as common from './common';
+import { Config } from './config';
+import { ErrorType } from './error';
+
+export class Context {
+    private constructor(
+        public config: Config,
+        public laneLength: number,
+        public memoryBlocks: number,
+        public pwd: Uint8Array,
+        public salt: Uint8Array,
+        public segmentLength: number
+    ) {}
+
+    static new(config: Config, pwd: Uint8Array, salt: Uint8Array): Context {
+        if (config.lanes < common.MIN_LANES) {
+            throw new Error(ErrorType.LanesTooFew);
+        } else if (config.lanes > common.MAX_LANES) {
+            throw new Error(ErrorType.LanesTooMany);
+        }
+
+        const lanes = config.lanes;
+        if (config.memCost < common.MIN_MEMORY) {
+            throw new Error(ErrorType.MemoryTooLittle);
+        } else if (config.memCost > common.MAX_MEMORY) {
+            throw new Error(ErrorType.MemoryTooMuch);
+        } else if (config.memCost < 8 * lanes) {
+            throw new Error(ErrorType.MemoryTooLittle);
+        }
+
+        if (config.timeCost < common.MIN_TIME) {
+            throw new Error(ErrorType.TimeTooSmall);
+        } else if (config.timeCost > common.MAX_TIME) {
+            throw new Error(ErrorType.TimeTooLarge);
+        }
+
+        const pwdLen = pwd.length;
+        if (pwdLen < common.MIN_PWD_LENGTH) {
+            throw new Error(ErrorType.PwdTooShort);
+        } else if (pwdLen > common.MAX_PWD_LENGTH) {
+            throw new Error(ErrorType.PwdTooLong);
+        }
+
+        const saltLen = salt.length;
+        if (saltLen < common.MIN_SALT_LENGTH) {
+            throw new Error(ErrorType.SaltTooShort);
+        } else if (saltLen > common.MAX_SALT_LENGTH) {
+            throw new Error(ErrorType.SaltTooLong);
+        }
+
+        const secretLen = config.secret.length;
+        if (secretLen < common.MIN_SECRET_LENGTH) {
+            throw new Error(ErrorType.SecretTooShort);
+        } else if (secretLen > common.MAX_SECRET_LENGTH) {
+            throw new Error(ErrorType.SecretTooLong);
+        }
+
+        const adLen = config.ad.length;
+        if (adLen < common.MIN_AD_LENGTH) {
+            throw new Error(ErrorType.AdTooShort);
+        } else if (adLen > common.MAX_AD_LENGTH) {
+            throw new Error(ErrorType.AdTooLong);
+        }
+
+        if (config.hashLength < common.MIN_HASH_LENGTH) {
+            throw new Error(ErrorType.OutputTooShort);
+        } else if (config.hashLength > common.MAX_HASH_LENGTH) {
+            throw new Error(ErrorType.OutputTooLong);
+        }
+
+        let memoryBlocks = config.memCost;
+        if (memoryBlocks < 2 * common.SYNC_POINTS * lanes) {
+            memoryBlocks = 2 * common.SYNC_POINTS * lanes;
+        }
+
+        const segmentLength = Math.floor(memoryBlocks / (lanes * common.SYNC_POINTS));
+        memoryBlocks = segmentLength * (lanes * common.SYNC_POINTS);
+        const laneLength = segmentLength * common.SYNC_POINTS;
+
+        return new Context(
+            config.clone(),
+            laneLength,
+            memoryBlocks,
+            pwd,
+            salt,
+            segmentLength
+        );
+    }
+}
+
+```
+
+`argon2-pure-js/src/core.ts`:
+
+```ts
+import { Block } from './block';
+import * as common from './common';
+import { Context } from './context';
+import { Memory } from './memory';
+import { Variant } from './variant';
+import { Version } from './version';
+import { blake2b as blake2bJs } from 'blakejs';
+
+export const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+
+export class Position {
+    constructor(
+        public pass: number,
+        public lane: number,
+        public slice: number,
+        public index: number
+    ) {}
+
+    clone(): Position {
+        return new Position(this.pass, this.lane, this.slice, this.index);
+    }
+}
+
+export function initialize(context: Context, memory: Memory): void {
+    fillFirstBlocks(context, memory, createH0(context));
+}
+
+export function fillMemoryBlocks(context: Context, memory: Memory): void {
+    fillMemoryBlocksSt(context, memory);
+}
+
+export function finalize(context: Context, memory: Memory): Uint8Array {
+    let blockHash = memory.getBlock(context.laneLength - 1).clone();
+    
+    for (let l = 1; l < context.config.lanes; l++) {
+        const lastBlockInLane = l * context.laneLength + (context.laneLength - 1);
+        const lastBlock = memory.getBlock(lastBlockInLane);
+        blockHash.bitwiseXor(lastBlock);
+    }
+
+    const hash = new Uint8Array(context.config.hashLength);
+    hprime(hash, blockHash.asU8());
+    return hash;
+}
+
+function blake2b(out: Uint8Array, input: Uint8Array[]): void {
+    // Concatenate all input arrays into a single one
+    let totalLength = 0;
+    for (const arr of input) {
+        totalLength += arr.length;
+    }
+    
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const arr of input) {
+        combined.set(arr, offset);
+        offset += arr.length;
+    }
+    
+    // Use blakejs to compute the hash
+    const result = blake2bJs(combined, undefined, out.length);
+    
+    // Copy the result to the output buffer
+    out.set(new Uint8Array(result));
+}
+
+export function fBlaMka(x: bigint, y: bigint): bigint {
+    const m = BigInt(0xFFFFFFFF);
+    const xMasked = x & MASK_64;
+    const yMasked = y & MASK_64;
+    const xy = (xMasked & m) * (yMasked & m);
+    return (xMasked + yMasked + xy + xy) & MASK_64;
+}
+
+export function fillBlock(prevBlock: Block, refBlock: Block, nextBlock: Block, withXor: boolean): void {
+    const blockR = refBlock.clone();
+    blockR.bitwiseXor(prevBlock);
+    const blockTmp = blockR.clone();
+
+    if (withXor) {
+        blockTmp.bitwiseXor(nextBlock);
+    }
+
+    for (let i = 0; i < 8; i++) {
+        const values = new Array<bigint>(16);
+        
+        for (let j = 0; j < 16; j++) {
+            values[j] = blockR.get(16 * i + j);
+        }
+        
+        p(values);
+        
+        for (let j = 0; j < 16; j++) {
+            blockR.set(16 * i + j, values[j]);
+        }
+    }
+
+    for (let i = 0; i < 8; i++) {
+        const values = new Array<bigint>(16);
+        
+        values[0] = blockR.get(2 * i);
+        values[1] = blockR.get(2 * i + 1);
+        values[2] = blockR.get(2 * i + 16);
+        values[3] = blockR.get(2 * i + 17);
+        values[4] = blockR.get(2 * i + 32);
+        values[5] = blockR.get(2 * i + 33);
+        values[6] = blockR.get(2 * i + 48);
+        values[7] = blockR.get(2 * i + 49);
+        values[8] = blockR.get(2 * i + 64);
+        values[9] = blockR.get(2 * i + 65);
+        values[10] = blockR.get(2 * i + 80);
+        values[11] = blockR.get(2 * i + 81);
+        values[12] = blockR.get(2 * i + 96);
+        values[13] = blockR.get(2 * i + 97);
+        values[14] = blockR.get(2 * i + 112);
+        values[15] = blockR.get(2 * i + 113);
+        
+        p(values);
+        
+        blockR.set(2 * i, values[0]);
+        blockR.set(2 * i + 1, values[1]);
+        blockR.set(2 * i + 16, values[2]);
+        blockR.set(2 * i + 17, values[3]);
+        blockR.set(2 * i + 32, values[4]);
+        blockR.set(2 * i + 33, values[5]);
+        blockR.set(2 * i + 48, values[6]);
+        blockR.set(2 * i + 49, values[7]);
+        blockR.set(2 * i + 64, values[8]);
+        blockR.set(2 * i + 65, values[9]);
+        blockR.set(2 * i + 80, values[10]);
+        blockR.set(2 * i + 81, values[11]);
+        blockR.set(2 * i + 96, values[12]);
+        blockR.set(2 * i + 97, values[13]);
+        blockR.set(2 * i + 112, values[14]);
+        blockR.set(2 * i + 113, values[15]);
+    }
+
+    blockTmp.copyTo(nextBlock);
+    nextBlock.bitwiseXor(blockR);
+}
+
+/**
+ * Fill the first blocks of memory.
+ */
+function fillFirstBlocks(context: Context, memory: Memory, h0: Uint8Array): void {
+    for (let lane = 0; lane < context.config.lanes; lane++) {
+        const start = common.PREHASH_DIGEST_LENGTH;
+        
+        // H'(H0||0||i)
+        setU32Le(h0, start, 0);
+        setU32Le(h0, start + 4, lane);
+        
+        const block0 = memory.getBlockByLaneAndOffset(lane, 0);
+        hprime(block0.asU8Mut(), h0);
+
+        // H'(H0||1||i)
+        setU32Le(h0, start, 1);
+        
+        const block1 = memory.getBlockByLaneAndOffset(lane, 1);
+        hprime(block1.asU8Mut(), h0);
+    }
+}
+
+/**
+ * Fill memory blocks in a single-threaded manner.
+ */
+function fillMemoryBlocksSt(context: Context, memory: Memory): void {
+    for (let p = 0; p < context.config.timeCost; p++) {
+        for (let s = 0; s < common.SYNC_POINTS; s++) {
+            for (let l = 0; l < context.config.lanes; l++) {
+                const position = new Position(p, l, s, 0);
+                fillSegment(context, position, memory);
+            }
+        }
+    }
+}
+
+export function fillSegment(context: Context, position: Position, memory: Memory): void {
+    const pos = position.clone();
+    const dataIndependentAddressing = (context.config.variant === Variant.Argon2i)
+        || (context.config.variant === Variant.Argon2id && pos.pass === 0
+            && pos.slice < (common.SYNC_POINTS / 2));
+    
+    const zeroBlock = Block.zero();
+    const inputBlock = Block.zero();
+    const addressBlock = Block.zero();
+
+    if (dataIndependentAddressing) {
+        inputBlock.set(0, BigInt(pos.pass));
+        inputBlock.set(1, BigInt(pos.lane));
+        inputBlock.set(2, BigInt(pos.slice));
+        inputBlock.set(3, BigInt(context.memoryBlocks));
+        inputBlock.set(4, BigInt(context.config.timeCost));
+        inputBlock.set(5, BigInt(context.config.variant));
+    }
+
+    let startingIndex = 0;
+
+    if (pos.pass === 0 && pos.slice === 0) {
+        startingIndex = 2;
+        
+        if (dataIndependentAddressing) {
+            nextAddresses(addressBlock, inputBlock, zeroBlock);
+        }
+    }
+
+    let currOffset = (pos.lane * context.laneLength)
+        + (pos.slice * context.segmentLength)
+        + startingIndex;
+
+    let prevOffset = (currOffset % context.laneLength === 0)
+        ? currOffset + context.laneLength - 1
+        : currOffset - 1;
+
+    const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+    const MASK_32 = BigInt("0xFFFFFFFF");
+
+    for (let i = startingIndex; i < context.segmentLength; i++) {
+        if (currOffset % context.laneLength === 1) {
+            prevOffset = currOffset - 1;
+        }
+
+        let pseudoRand: bigint;
+        if (dataIndependentAddressing) {
+            if (i % common.ADDRESSES_IN_BLOCK === 0) {
+                nextAddresses(addressBlock, inputBlock, zeroBlock);
+            }
+            pseudoRand = addressBlock.get(i % common.ADDRESSES_IN_BLOCK);
+        } else {
+            pseudoRand = memory.getBlock(prevOffset).get(0);
+        }
+
+        const refLane = ((pos.pass === 0) && (pos.slice === 0))
+            ? BigInt(pos.lane)
+            : (pseudoRand >> BigInt(32)) % BigInt(context.config.lanes);
+
+        pos.index = i;
+        const pseudoRandU32 = Number(pseudoRand & MASK_32);
+        const sameLane = refLane === BigInt(pos.lane);
+        const refIndex = indexAlpha(context, pos, pseudoRandU32, sameLane);
+
+        const index = Number(BigInt(context.laneLength) * refLane + BigInt(refIndex));
+        
+        const prevBlock = memory.getBlock(prevOffset);
+        const refBlock = memory.getBlock(index);
+        const currBlock = memory.getBlock(currOffset).clone();
+        
+        if (context.config.version === Version.Version10 || pos.pass === 0) {
+            fillBlock(prevBlock, refBlock, currBlock, false);
+        } else {
+            fillBlock(prevBlock, refBlock, currBlock, true);
+        }
+
+        memory.setBlock(currOffset, currBlock);
+        
+        currOffset += 1;
+        prevOffset += 1;
+    }
+}
+
+/**
+ * Write a 32-bit unsigned integer in little-endian format.
+ */
+function setU32Le(array: Uint8Array, offset: number, value: number): void {
+    array[offset] = value & 0xFF;
+    array[offset + 1] = (value >> 8) & 0xFF;
+    array[offset + 2] = (value >> 16) & 0xFF;
+    array[offset + 3] = (value >> 24) & 0xFF;
+}
+
+/**
+ * Convert a 32-bit unsigned integer to little-endian byte array.
+ */
+function u32ToLe(value: number): Uint8Array {
+    const result = new Uint8Array(4);
+    setU32Le(result, 0, value);
+    return result;
+}
+
+export function g(values: bigint[]): void {
+    let a = values[0];
+    let b = values[1];
+    let c = values[2];
+    let d = values[3];
+    
+    a = fBlaMka(a, b);
+    d = rotr64(d ^ a, 32);
+    c = fBlaMka(c, d);
+    b = rotr64(b ^ c, 24);
+    a = fBlaMka(a, b);
+    d = rotr64(d ^ a, 16);
+    c = fBlaMka(c, d);
+    b = rotr64(b ^ c, 63);
+    
+    values[0] = a;
+    values[1] = b;
+    values[2] = c;
+    values[3] = d;
+}
+
+/**
+ * Create the initial H0 value used in the algorithm.
+ */
+function createH0(context: Context): Uint8Array {
+    const h0 = new Uint8Array(common.PREHASH_SEED_LENGTH);
+    
+    // Prepare the input array with all the parameters
+    const lanesBytes = u32ToLe(context.config.lanes);
+    const hashLengthBytes = u32ToLe(context.config.hashLength);
+    const memCostBytes = u32ToLe(context.config.memCost);
+    const timeCostBytes = u32ToLe(context.config.timeCost);
+    const versionBytes = u32ToLe(context.config.version);
+    const variantBytes = u32ToLe(context.config.variant);
+    const pwdLenBytes = u32ToLe(context.pwd.length);
+    const saltLenBytes = u32ToLe(context.salt.length);
+    const secretLenBytes = u32ToLe(context.config.secret.length);
+    const adLenBytes = u32ToLe(context.config.ad.length);
+    
+    // Combine all inputs for Blake2b
+    const input = [
+        lanesBytes,
+        hashLengthBytes,
+        memCostBytes,
+        timeCostBytes,
+        versionBytes,
+        variantBytes,
+        pwdLenBytes,
+        context.pwd,
+        saltLenBytes,
+        context.salt,
+        secretLenBytes,
+        context.config.secret,
+        adLenBytes,
+        context.config.ad
+    ];
+    
+    // Hash the combined input
+    blake2b(h0.subarray(0, common.PREHASH_DIGEST_LENGTH), input);
+    
+    return h0;
+}
+
+/**
+ * The H' function as defined in the Argon2 paper.
+ */
+function hprime(out: Uint8Array, input: Uint8Array): void {
+    const outLen = out.length;
+    
+    if (outLen <= common.BLAKE2B_OUT_LENGTH) {
+        const outLenBytes = u32ToLe(outLen);
+        blake2b(out, [outLenBytes, input]);
+    } else {
+        const aiLen = 32;
+        let outBuffer = new Uint8Array(common.BLAKE2B_OUT_LENGTH);
+        let inBuffer = new Uint8Array(common.BLAKE2B_OUT_LENGTH);
+        
+        // Initial hash with the length
+        const outLenBytes = u32ToLe(outLen);
+        blake2b(outBuffer, [outLenBytes, input]);
+        
+        // Copy first block to output
+        out.set(outBuffer.subarray(0, aiLen), 0);
+        
+        let outPos = aiLen;
+        let toProduce = outLen - aiLen;
+        
+        while (toProduce > common.BLAKE2B_OUT_LENGTH) {
+            inBuffer.set(outBuffer);
+            blake2b(outBuffer, [inBuffer]);
+            out.set(outBuffer.subarray(0, aiLen), outPos);
+            outPos += aiLen;
+            toProduce -= aiLen;
+        }
+        
+        blake2b(out.subarray(outPos, outLen), [outBuffer]);
+    }
+}
+
+export function indexAlpha(context: Context, position: Position, pseudoRand: number, sameLane: boolean): number {
+    let referenceAreaSize: number;
+    
+    if (position.pass === 0) {
+        if (position.slice === 0) {
+            referenceAreaSize = position.index - 1;
+        } else if (sameLane) {
+            referenceAreaSize = position.slice * context.segmentLength + position.index - 1;
+        } else if (position.index === 0) {
+            referenceAreaSize = position.slice * context.segmentLength - 1;
+        } else {
+            referenceAreaSize = position.slice * context.segmentLength;
+        }
+    } else {
+        if (sameLane) {
+            referenceAreaSize = context.laneLength - context.segmentLength + position.index - 1;
+        } else if (position.index === 0) {
+            referenceAreaSize = context.laneLength - context.segmentLength - 1;
+        } else {
+            referenceAreaSize = context.laneLength - context.segmentLength;
+        }
+    }
+    
+    const refAreaSizeU64 = BigInt(Math.max(1, referenceAreaSize));
+    let pseudoRandU64 = BigInt(pseudoRand) & BigInt(0xFFFFFFFF);
+    
+    pseudoRandU64 = ((pseudoRandU64 * pseudoRandU64) & MASK_64) >> BigInt(32);
+    const relativePosition = Number(refAreaSizeU64 - BigInt(1) - ((refAreaSizeU64 * pseudoRandU64) >> BigInt(32)));
+    
+    let startPosition = 0;
+    if (position.pass !== 0) {
+        if (position.slice === common.SYNC_POINTS - 1) {
+            startPosition = 0;
+        } else {
+            startPosition = (position.slice + 1) * context.segmentLength;
+        }
+    }
+    
+    return (startPosition + relativePosition) % context.laneLength;
+}
+
+export function nextAddresses(addressBlock: Block, inputBlock: Block, zeroBlock: Block): void {
+    inputBlock.set(6, inputBlock.get(6) + BigInt(1));
+    // fillBlock(zeroBlock, inputBlock, addressBlock, false);
+    // const tempBlock = addressBlock.clone();
+    // fillBlock(zeroBlock, tempBlock, addressBlock, false);
+}
+
+export function p(v: bigint[]): void {
+    g(v.slice(0, 4));
+    g(v.slice(4, 8));
+    g(v.slice(8, 12));
+    g(v.slice(12, 16));
+    
+    g([v[0], v[5], v[10], v[15]]);
+    g([v[1], v[6], v[11], v[12]]);
+    g([v[2], v[7], v[8], v[13]]);
+    g([v[3], v[4], v[9], v[14]]);
+}
+
+export function rotr64(w: bigint, c: number): bigint {
+    const input = w & MASK_64;
+    return ((input >> BigInt(c)) | ((input << BigInt(64 - c)) & MASK_64)) & MASK_64;
+}
+
+```
+
+`argon2-pure-js/src/decoded.ts`:
+
+```ts
+import { Variant } from './variant';
+import { Version } from './version';
+
+export class Decoded {
+    constructor(
+        public variant: Variant,
+        public version: Version,
+        public memCost: number,
+        public timeCost: number,
+        public parallelism: number,
+        public salt: Uint8Array,
+        public hash: Uint8Array
+    ) {}
+}
+
+```
+
+`argon2-pure-js/src/encoding.ts`:
+
+```ts
+import { Context } from './context';
+import { Decoded } from './decoded';
+import { ErrorType } from './error';
+import { Variant, VariantUtil } from './variant';
+import { Version, VersionUtil } from './version';
+
+interface Options {
+    memCost: number;
+    timeCost: number;
+    parallelism: number;
+}
+
+export function base64Len(length: number): number {
+    const olen = Math.floor(length / 3) << 2;
+    switch (length % 3) {
+        case 2: return olen + 3;
+        case 1: return olen + 2;
+        default: return olen;
+    }
+}
+
+export function decodeString(encoded: string): Decoded {
+    const items = encoded.split('$');
+    
+    if (items.length === 6) {
+        decodeEmpty(items[0]);
+        const variant = decodeVariant(items[1]);
+        const version = decodeVersion(items[2]);
+        const options = decodeOptions(items[3]);
+
+        try {
+            const salt = base64Decode(items[4]);
+            const hash = base64Decode(items[5]);
+
+            return new Decoded(
+                variant,
+                version,
+                options.memCost,
+                options.timeCost,
+                options.parallelism,
+                salt,
+                hash
+            );
+        } catch {
+            throw new Error(ErrorType.DecodingFail);
+        }
+    } else if (items.length === 5) {
+        decodeEmpty(items[0]);
+        const variant = decodeVariant(items[1]);
+        const options = decodeOptions(items[2]);
+
+        try {
+            const salt = base64Decode(items[3]);
+            const hash = base64Decode(items[4]);
+
+            return new Decoded(
+                variant,
+                Version.Version10,
+                options.memCost,
+                options.timeCost,
+                options.parallelism,
+                salt,
+                hash
+            );
+        } catch {
+            throw new Error(ErrorType.DecodingFail);
+        }
+    } else {
+        throw new Error(ErrorType.DecodingFail);
+    }
+}
+
+function decodeEmpty(str: string): void {
+    if (str === "") {
+        return; 
+    } else {
+        throw new Error(ErrorType.DecodingFail);
+    }
+}
+
+function decodeOptions(str: string): Options {
+    const items = str.split(',');
+    if (items.length === 3) {
+        const memCost = decodeOption(items[0], "m");
+        const timeCost = decodeOption(items[1], "t");
+        const parallelism = decodeOption(items[2], "p");
+
+        return {
+            memCost,
+            timeCost,
+            parallelism
+        };
+    } else {
+        throw new Error(ErrorType.DecodingFail);
+    }
+}
+
+function decodeOption(str: string, name: string): number {
+    const items = str.split('=');
+    if (items.length === 2) {
+        if (items[0] === name) {
+            return decodeU32(items[1]);
+        } else {
+            throw new Error(ErrorType.DecodingFail);
+        }
+    } else {
+        throw new Error(ErrorType.DecodingFail);
+    }
+}
+
+function decodeU32(str: string): number {
+    const num = parseInt(str, 10);
+    if (isNaN(num)) {
+        throw new Error(ErrorType.DecodingFail);
+    }
+    return num;
+}
+
+function decodeVariant(str: string): Variant {
+    return VariantUtil.fromStr(str);
+}
+
+function decodeVersion(str: string): Version {
+    const items = str.split('=');
+    if (items.length === 2) {
+        if (items[0] === "v") {
+            return VersionUtil.fromStr(items[1]);
+        } else {
+            throw new Error(ErrorType.DecodingFail);
+        }
+    } else {
+        throw new Error(ErrorType.DecodingFail);
+    }
+}
+
+export function encodeString(context: Context, hash: Uint8Array): string {
+    return `$${VariantUtil.asLowercaseStr(context.config.variant)}$v=${context.config.version}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
+}
+
+export function numLen(number: number): number {
+    let len = 1;
+    let num = number;
+    while (num >= 10) {
+        len += 1;
+        num = Math.floor(num / 10);
+    }
+    return len;
+}
+
+
+function base64Encode(data: Uint8Array): string {
+    return btoa(String.fromCharCode.apply(null, [...data]))
+        .replace(/=+$/, '');
+}
+
+function base64Decode(str: string): Uint8Array {
+    const binary = atob(str);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+}
+
+```
+
+`argon2-pure-js/src/error.ts`:
+
+```ts
+export enum ErrorType {
+    OutputTooShort = "OutputTooShort",
+    OutputTooLong = "OutputTooLong",
+    PwdTooShort = "PwdTooShort",
+    PwdTooLong = "PwdTooLong",
+    SaltTooShort = "SaltTooShort",
+    SaltTooLong = "SaltTooLong",
+    AdTooShort = "AdTooShort",
+    AdTooLong = "AdTooLong",
+    SecretTooShort = "SecretTooShort",
+    SecretTooLong = "SecretTooLong",
+    TimeTooSmall = "TimeTooSmall",
+    TimeTooLarge = "TimeTooLarge",
+    MemoryTooLittle = "MemoryTooLittle",
+    MemoryTooMuch = "MemoryTooMuch",
+    LanesTooFew = "LanesTooFew",
+    LanesTooMany = "LanesTooMany",
+    IncorrectType = "IncorrectType",
+    IncorrectVersion = "IncorrectVersion",
+    DecodingFail = "DecodingFail"
+}
+
+```
+
+`argon2-pure-js/src/memory.ts`:
+
+```ts
+import { Block } from './block';
+
+export class Memory {
+    private rows: number;
+    private cols: number;
+    private blocks: Block[];
+
+    constructor(lanes: number, laneLength: number) {
+        this.rows = lanes;
+        this.cols = laneLength;
+        this.blocks = new Array(this.rows * this.cols);
+        
+        for (let i = 0; i < this.rows * this.cols; i++) {
+            this.blocks[i] = Block.zero();
+        }
+    }
+
+    getBlock(index: number): Block {
+        return this.blocks[index];
+    }
+
+    setBlock(index: number, block: Block): void {
+        this.blocks[index] = block;
+    }
+
+    getBlockByLaneAndOffset(lane: number, offset: number): Block {
+        const index = (lane * this.cols) + offset;
+        return this.blocks[index];
+    }
+
+    setBlockByLaneAndOffset(lane: number, offset: number, block: Block): void {
+        const index = (lane * this.cols) + offset;
+        this.blocks[index] = block;
+    }
+}
+
+```
+
+`argon2-pure-js/src/variant.ts`:
+
+```ts
+import { ErrorType } from './error';
+
+export enum Variant {
+    Argon2d = 0,
+    Argon2i = 1,
+    Argon2id = 2
+}
+
+export class VariantUtil {
+    static asLowercaseStr(variant: Variant): string {
+        switch (variant) {
+            case Variant.Argon2d: return "argon2d";
+            case Variant.Argon2i: return "argon2i";
+            case Variant.Argon2id: return "argon2id";
+        }
+    }
+
+    static asU32(variant: Variant): number {
+        return variant;
+    }
+
+    static asU64(variant: Variant): number {
+        return variant;
+    }
+
+    static asUppercaseStr(variant: Variant): string {
+        switch (variant) {
+            case Variant.Argon2d: return "Argon2d";
+            case Variant.Argon2i: return "Argon2i";
+            case Variant.Argon2id: return "Argon2id";
+        }
+    }
+
+    static fromStr(str: string): Variant {
+        switch (str) {
+            case "Argon2d":
+            case "argon2d":
+                return Variant.Argon2d;
+            case "Argon2i":
+            case "argon2i":
+                return Variant.Argon2i;
+            case "Argon2id":
+            case "argon2id":
+                return Variant.Argon2id;
+            default:
+                throw new Error(ErrorType.DecodingFail);
+        }
+    }
+
+    static fromU32(val: number): Variant {
+        switch (val) {
+            case 0: return Variant.Argon2d;
+            case 1: return Variant.Argon2i;
+            case 2: return Variant.Argon2id;
+            default: throw new Error(ErrorType.IncorrectType);
+        }
+    }
+}
+
+```
+
+`argon2-pure-js/src/version.ts`:
+
+```ts
+import { ErrorType } from './error';
+
+export enum Version {
+    Version10 = 0x10,
+    Version13 = 0x13
+}
+
+export class VersionUtil {
+    static asU32(version: Version): number {
+        return version;
+    }
+
+    static fromStr(str: string): Version {
+        switch (str) {
+            case "16": return Version.Version10;
+            case "19": return Version.Version13;
+            default: throw new Error(ErrorType.DecodingFail);
+        }
+    }
+
+    static fromU32(val: number): Version {
+        switch (val) {
+            case 0x10: return Version.Version10;
+            case 0x13: return Version.Version13;
+            default: throw new Error(ErrorType.IncorrectVersion);
+        }
+    }
+}
+
+```

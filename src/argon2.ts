@@ -83,7 +83,6 @@ export function verifyRaw(
     );
     const context = Context.new(extConfig, pwd, salt);
     const calculatedHash = run(context);
-    console.log(calculatedHash);
     
     return constantTimeEq(hash, calculatedHash);
   } catch (e) {

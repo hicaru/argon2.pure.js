@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "bun run build"
+    "build": "tsc",
+    "build:watch": "tsc --watch"
   },
   "keywords": ["argon2", "crypto", "hashing", "pure-js"],
   "author": "Rinat",

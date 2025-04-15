@@ -6,12 +6,9 @@ import { Variant } from './variant';
 import { Version } from './version';
 import { blake2b as blake2bJs } from 'blakejs';
 
-const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+export const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
 
-/**
- * Position of the block currently being operated on.
- */
-class Position {
+export class Position {
     constructor(
         public pass: number,
         public lane: number,
@@ -24,23 +21,14 @@ class Position {
     }
 }
 
-/**
- * Initializes the memory.
- */
 export function initialize(context: Context, memory: Memory): void {
     fillFirstBlocks(context, memory, createH0(context));
 }
 
-/**
- * Fills all the memory blocks.
- */
 export function fillMemoryBlocks(context: Context, memory: Memory): void {
     fillMemoryBlocksSt(context, memory);
 }
 
-/**
- * Calculates the final hash and returns it.
- */
 export function finalize(context: Context, memory: Memory): Uint8Array {
     let blockHash = memory.getBlock(context.laneLength - 1).clone();
     
@@ -55,9 +43,6 @@ export function finalize(context: Context, memory: Memory): Uint8Array {
     return hash;
 }
 
-/**
- * Blake2b hash function implementation using blakejs.
- */
 function blake2b(out: Uint8Array, input: Uint8Array[]): void {
     // Concatenate all input arrays into a single one
     let totalLength = 0;
@@ -79,19 +64,15 @@ function blake2b(out: Uint8Array, input: Uint8Array[]): void {
     out.set(new Uint8Array(result));
 }
 
-/**
- * Implements the f_bla_mka function from the Rust version.
- */
 export function fBlaMka(x: bigint, y: bigint): bigint {
     const m = BigInt(0xFFFFFFFF);
-    const xy = (x & m) * (y & m);
-    return (x + y + xy + xy) & MASK_64;
+    const xMasked = x & MASK_64;
+    const yMasked = y & MASK_64;
+    const xy = (xMasked & m) * (yMasked & m);
+    return (xMasked + yMasked + xy + xy) & MASK_64;
 }
 
-/**
- * Fill a block according to the Argon2 algorithm.
- */
-function fillBlock(prevBlock: Block, refBlock: Block, nextBlock: Block, withXor: boolean): void {
+export function fillBlock(prevBlock: Block, refBlock: Block, nextBlock: Block, withXor: boolean): void {
     const blockR = refBlock.clone();
     blockR.bitwiseXor(prevBlock);
     const blockTmp = blockR.clone();
@@ -100,68 +81,42 @@ function fillBlock(prevBlock: Block, refBlock: Block, nextBlock: Block, withXor:
         blockTmp.bitwiseXor(nextBlock);
     }
 
-    // Apply Blake2 on columns of 64-bit words
     for (let i = 0; i < 8; i++) {
-        let v0 = blockR.get(16 * i);
-        let v1 = blockR.get(16 * i + 1);
-        let v2 = blockR.get(16 * i + 2);
-        let v3 = blockR.get(16 * i + 3);
-        let v4 = blockR.get(16 * i + 4);
-        let v5 = blockR.get(16 * i + 5);
-        let v6 = blockR.get(16 * i + 6);
-        let v7 = blockR.get(16 * i + 7);
-        let v8 = blockR.get(16 * i + 8);
-        let v9 = blockR.get(16 * i + 9);
-        let v10 = blockR.get(16 * i + 10);
-        let v11 = blockR.get(16 * i + 11);
-        let v12 = blockR.get(16 * i + 12);
-        let v13 = blockR.get(16 * i + 13);
-        let v14 = blockR.get(16 * i + 14);
-        let v15 = blockR.get(16 * i + 15);
-
-        const values = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15];
+        const values = new Array<bigint>(16);
+        
+        for (let j = 0; j < 16; j++) {
+            values[j] = blockR.get(16 * i + j);
+        }
+        
         p(values);
-
-        blockR.set(16 * i, values[0]);
-        blockR.set(16 * i + 1, values[1]);
-        blockR.set(16 * i + 2, values[2]);
-        blockR.set(16 * i + 3, values[3]);
-        blockR.set(16 * i + 4, values[4]);
-        blockR.set(16 * i + 5, values[5]);
-        blockR.set(16 * i + 6, values[6]);
-        blockR.set(16 * i + 7, values[7]);
-        blockR.set(16 * i + 8, values[8]);
-        blockR.set(16 * i + 9, values[9]);
-        blockR.set(16 * i + 10, values[10]);
-        blockR.set(16 * i + 11, values[11]);
-        blockR.set(16 * i + 12, values[12]);
-        blockR.set(16 * i + 13, values[13]);
-        blockR.set(16 * i + 14, values[14]);
-        blockR.set(16 * i + 15, values[15]);
+        
+        for (let j = 0; j < 16; j++) {
+            blockR.set(16 * i + j, values[j]);
+        }
     }
 
-    // Apply Blake2 on rows of 64-bit words
     for (let i = 0; i < 8; i++) {
-        let v0 = blockR.get(2 * i);
-        let v1 = blockR.get(2 * i + 1);
-        let v2 = blockR.get(2 * i + 16);
-        let v3 = blockR.get(2 * i + 17);
-        let v4 = blockR.get(2 * i + 32);
-        let v5 = blockR.get(2 * i + 33);
-        let v6 = blockR.get(2 * i + 48);
-        let v7 = blockR.get(2 * i + 49);
-        let v8 = blockR.get(2 * i + 64);
-        let v9 = blockR.get(2 * i + 65);
-        let v10 = blockR.get(2 * i + 80);
-        let v11 = blockR.get(2 * i + 81);
-        let v12 = blockR.get(2 * i + 96);
-        let v13 = blockR.get(2 * i + 97);
-        let v14 = blockR.get(2 * i + 112);
-        let v15 = blockR.get(2 * i + 113);
+        const values = new Array<bigint>(16);
+        
+        values[0] = blockR.get(2 * i);
+        values[1] = blockR.get(2 * i + 1);
+        values[2] = blockR.get(2 * i + 16);
+        values[3] = blockR.get(2 * i + 17);
+        values[4] = blockR.get(2 * i + 32);
+        values[5] = blockR.get(2 * i + 33);
+        values[6] = blockR.get(2 * i + 48);
+        values[7] = blockR.get(2 * i + 49);
+        values[8] = blockR.get(2 * i + 64);
+        values[9] = blockR.get(2 * i + 65);
+        values[10] = blockR.get(2 * i + 80);
+        values[11] = blockR.get(2 * i + 81);
+        values[12] = blockR.get(2 * i + 96);
+        values[13] = blockR.get(2 * i + 97);
+        values[14] = blockR.get(2 * i + 112);
+        values[15] = blockR.get(2 * i + 113);
 
-        const values = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15];
         p(values);
-
+        
         blockR.set(2 * i, values[0]);
         blockR.set(2 * i + 1, values[1]);
         blockR.set(2 * i + 16, values[2]);
@@ -220,10 +175,7 @@ function fillMemoryBlocksSt(context: Context, memory: Memory): void {
     }
 }
 
-/**
- * Fill a memory segment.
- */
-function fillSegment(context: Context, position: Position, memory: Memory): void {
+export function fillSegment(context: Context, position: Position, memory: Memory): void {
     const pos = position.clone();
     const dataIndependentAddressing = (context.config.variant === Variant.Argon2i)
         || (context.config.variant === Variant.Argon2id && pos.pass === 0
@@ -260,15 +212,15 @@ function fillSegment(context: Context, position: Position, memory: Memory): void
         ? currOffset + context.laneLength - 1
         : currOffset - 1;
 
-    let pseudoRand: bigint;
+    const MASK_64 = BigInt("0xFFFFFFFFFFFFFFFF");
+    const MASK_32 = BigInt("0xFFFFFFFF");
+
     for (let i = startingIndex; i < context.segmentLength; i++) {
-        // 1.1 Rotating prev_offset if needed
         if (currOffset % context.laneLength === 1) {
             prevOffset = currOffset - 1;
         }
 
-        // 1.2 Computing the index of the reference block
-        // 1.2.1 Taking pseudo-random value from the previous block
+        let pseudoRand: bigint;
         if (dataIndependentAddressing) {
             if (i % common.ADDRESSES_IN_BLOCK === 0) {
                 nextAddresses(addressBlock, inputBlock, zeroBlock);
@@ -278,36 +230,29 @@ function fillSegment(context: Context, position: Position, memory: Memory): void
             pseudoRand = memory.getBlock(prevOffset).get(0);
         }
 
-        // 1.2.2 Computing the lane of the reference block
         const refLane = ((pos.pass === 0) && (pos.slice === 0))
             ? BigInt(pos.lane)
             : (pseudoRand >> BigInt(32)) % BigInt(context.config.lanes);
 
-        // 1.2.3 Computing the number of possible reference block within the lane
         pos.index = i;
-        const pseudoRandU32 = Number(pseudoRand & BigInt(0xFFFFFFFF));
+        const pseudoRandU32 = Number(pseudoRand & MASK_32);
         const sameLane = refLane === BigInt(pos.lane);
         const refIndex = indexAlpha(context, pos, pseudoRandU32, sameLane);
 
-        // 2 Creating a new block
         const index = Number(BigInt(context.laneLength) * refLane + BigInt(refIndex));
         
-        // Важно: получаем новый блок, который будем модифицировать
-        const currBlock = memory.getBlock(currOffset).clone();
         const prevBlock = memory.getBlock(prevOffset);
         const refBlock = memory.getBlock(index);
+        const currBlock = memory.getBlock(currOffset).clone();
         
-        // Вызываем fillBlock, который должен изменить currBlock
         if (context.config.version === Version.Version10 || pos.pass === 0) {
             fillBlock(prevBlock, refBlock, currBlock, false);
         } else {
             fillBlock(prevBlock, refBlock, currBlock, true);
         }
 
-        // Теперь нужно убедиться, что изменения сохраняются в memory
         memory.setBlock(currOffset, currBlock);
         
-        // Увеличиваем смещения
         currOffset += 1;
         prevOffset += 1;
     }
@@ -332,18 +277,17 @@ function u32ToLe(value: number): Uint8Array {
     return result;
 }
 
-/**
- * The G function from the Blake2b algorithm.
- */
-function g(values: bigint[]): void {
-    values[0] = fBlaMka(values[0], values[1]);
-    values[3] = rotr64(values[3] ^ values[0], 32);
-    values[2] = fBlaMka(values[2], values[3]);
-    values[1] = rotr64(values[1] ^ values[2], 24);
-    values[0] = fBlaMka(values[0], values[1]);
-    values[3] = rotr64(values[3] ^ values[0], 16);
-    values[2] = fBlaMka(values[2], values[3]);
-    values[1] = rotr64(values[1] ^ values[2], 63);
+export function g(a: bigint, b: bigint, c: bigint, d: bigint): [bigint, bigint, bigint, bigint] {
+   a = fBlaMka(a, b);
+   d = rotr64(d ^ a, 32);
+   c = fBlaMka(c, d);
+   b = rotr64(b ^ c, 24);
+   a = fBlaMka(a, b);
+   d = rotr64(d ^ a, 16);
+   c = fBlaMka(c, d);
+   b = rotr64(b ^ c, 63);
+   
+   return [a, b, c, d];
 }
 
 /**
@@ -424,7 +368,7 @@ function hprime(out: Uint8Array, input: Uint8Array): void {
     }
 }
 
-function indexAlpha(context: Context, position: Position, pseudoRand: number, sameLane: boolean): number {
+export function indexAlpha(context: Context, position: Position, pseudoRand: number, sameLane: boolean): number {
     let referenceAreaSize: number;
     
     if (position.pass === 0) {
@@ -447,13 +391,11 @@ function indexAlpha(context: Context, position: Position, pseudoRand: number, sa
         }
     }
     
-    // Calculate relative position using the 64-bit division simulation
-    let relativePosition: number;
-    let refAreaSizeU64 = BigInt(referenceAreaSize);
-    let pseudoRandU64 = BigInt(pseudoRand);
+    const refAreaSizeU64 = BigInt(Math.max(1, referenceAreaSize));
+    let pseudoRandU64 = BigInt(pseudoRand) & BigInt(0xFFFFFFFF);
     
-    pseudoRandU64 = (pseudoRandU64 * pseudoRandU64) >> BigInt(32);
-    relativePosition = Number(refAreaSizeU64 - BigInt(1) - ((refAreaSizeU64 * pseudoRandU64) >> BigInt(32)));
+    pseudoRandU64 = ((pseudoRandU64 * pseudoRandU64) & MASK_64) >> BigInt(32);
+    const relativePosition = Number(refAreaSizeU64 - BigInt(1) - ((refAreaSizeU64 * pseudoRandU64) >> BigInt(32)));
     
     let startPosition = 0;
     if (position.pass !== 0) {
@@ -467,22 +409,33 @@ function indexAlpha(context: Context, position: Position, pseudoRand: number, sa
     return (startPosition + relativePosition) % context.laneLength;
 }
 
-function nextAddresses(addressBlock: Block, inputBlock: Block, zeroBlock: Block): void {
+export function nextAddresses(addressBlock: Block, inputBlock: Block, zeroBlock: Block): void {
     inputBlock.set(6, inputBlock.get(6) + BigInt(1));
     fillBlock(zeroBlock, inputBlock, addressBlock, false);
-    fillBlock(zeroBlock, addressBlock.clone(), addressBlock, false);
+    const tempBlock = addressBlock.clone();
+    fillBlock(zeroBlock, tempBlock, addressBlock, false);
 }
 
-function p(v: bigint[]): void {
-    g(v.slice(0, 4));   // v0, v4, v8, v12
-    g(v.slice(4, 8));   // v1, v5, v9, v13
-    g(v.slice(8, 12));  // v2, v6, v10, v14
-    g(v.slice(12, 16)); // v3, v7, v11, v15
-    
-    g([v[0], v[5], v[10], v[15]]);
-    g([v[1], v[6], v[11], v[12]]);
-    g([v[2], v[7], v[8], v[13]]);
-    g([v[3], v[4], v[9], v[14]]);
+export function p(v: bigint[]): void {
+   let v0 = v[0], v1 = v[1], v2 = v[2], v3 = v[3];
+   let v4 = v[4], v5 = v[5], v6 = v[6], v7 = v[7];
+   let v8 = v[8], v9 = v[9], v10 = v[10], v11 = v[11];
+   let v12 = v[12], v13 = v[13], v14 = v[14], v15 = v[15];
+   
+   [v0, v4, v8, v12] = g(v0, v4, v8, v12);
+   [v1, v5, v9, v13] = g(v1, v5, v9, v13);
+   [v2, v6, v10, v14] = g(v2, v6, v10, v14);
+   [v3, v7, v11, v15] = g(v3, v7, v11, v15);
+   
+   [v0, v5, v10, v15] = g(v0, v5, v10, v15);
+   [v1, v6, v11, v12] = g(v1, v6, v11, v12);
+   [v2, v7, v8, v13] = g(v2, v7, v8, v13);
+   [v3, v4, v9, v14] = g(v3, v4, v9, v14);
+   
+   v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
+   v[4] = v4; v[5] = v5; v[6] = v6; v[7] = v7;
+   v[8] = v8; v[9] = v9; v[10] = v10; v[11] = v11;
+   v[12] = v12; v[13] = v13; v[14] = v14; v[15] = v15;
 }
 
 export function rotr64(w: bigint, c: number): bigint {

@@ -134,11 +134,7 @@ function decodeVersion(str: string): Version {
 }
 
 export function encodeString(context: Context, hash: Uint8Array): string {
-    if (context.config.version === Version.Version10) {
-        return `$${VariantUtil.asLowercaseStr(context.config.variant)}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
-    } else {
-        return `$${VariantUtil.asLowercaseStr(context.config.variant)}$v=${context.config.version}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
-    }
+    return `$${VariantUtil.asLowercaseStr(context.config.variant)}$v=${context.config.version}$m=${context.config.memCost},t=${context.config.timeCost},p=${context.config.lanes}$${base64Encode(context.salt)}$${base64Encode(hash)}`;
 }
 
 export function numLen(number: number): number {

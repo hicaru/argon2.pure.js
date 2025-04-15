@@ -1,7 +1,9 @@
+import { MIN_SALT_LENGTH } from './common';
 import { Config } from './config';
 import { Context } from './context';
 import * as core from './core';
 import * as encoding from './encoding';
+import { ErrorType } from './error';
 import { Memory } from './memory';
 import { Variant, VariantUtil } from './variant';
 import { Version } from './version';
@@ -45,23 +47,23 @@ export function verifyEncodedExt(
   secret: Uint8Array, 
   ad: Uint8Array
 ): boolean {
-  try {
-    const decoded = encoding.decodeString(encoded);
-    const config = new Config(
-      ad,
-      decoded.hash.length,
-      decoded.parallelism,
-      decoded.memCost,
-      secret,
-      decoded.timeCost,
-      decoded.variant,
-      decoded.version
-    );
+  const decoded = encoding.decodeString(encoded);
+  const config = new Config(
+    ad,
+    decoded.hash.length,
+    decoded.parallelism,
+    decoded.memCost,
+    secret,
+    decoded.timeCost,
+    decoded.variant,
+    decoded.version
+  );
 
-    return verifyRaw(pwd, decoded.salt, decoded.hash, config);
-  } catch (e) {
-    return false;
+  if (decoded.salt.length < MIN_SALT_LENGTH) {
+    throw new Error(ErrorType.SaltTooShort);
   }
+
+  return verifyRaw(pwd, decoded.salt, decoded.hash, config);
 }
 
 export function verifyRaw(

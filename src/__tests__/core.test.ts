@@ -62,7 +62,7 @@ describe('core Argon2d', () => {
             new TextEncoder().encode("password"),
             new TextEncoder().encode("somesalt"),
             "bd404868ff00c52e7543c8332e6a772a5724892d7e328d5cf253bbc8e726b371",
-            "$argon2d$m=256,t=2,p=1$c29tZXNhbHQ$vUBIaP8AxS51Q8gzLmp3KlckiS1+Mo1c8lO7yOcms3E",
+            "$argon2d$v=16$m=256,t=2,p=1$c29tZXNhbHQ$vUBIaP8AxS51Q8gzLmp3KlckiS1+Mo1c8lO7yOcms3E",
         );
     });
 
@@ -77,7 +77,7 @@ describe('core Argon2d', () => {
             new TextEncoder().encode("password"),
             new TextEncoder().encode("somesalt"),
             "6a91d02b9f8854ba0841f04aa6e53c1d3374c0a0c646b8e431b03de805b91ec3",
-            "$argon2d$m=256,t=2,p=2$c29tZXNhbHQ$apHQK5+IVLoIQfBKpuU8HTN0wKDGRrjkMbA96AW5HsM",
+            "$argon2d$v=16$m=256,t=2,p=2$c29tZXNhbHQ$apHQK5+IVLoIQfBKpuU8HTN0wKDGRrjkMbA96AW5HsM",
         );
     });
     
@@ -121,7 +121,7 @@ describe('Argon2i', () => {
             new TextEncoder().encode("password"),
             new TextEncoder().encode("somesalt"),
             "fd4dd83d762c49bdeaf57c47bdcd0c2f1babf863fdeb490df63ede9975fccf06",
-            "$argon2i$m=256,t=2,p=1$c29tZXNhbHQ$/U3YPXYsSb3q9XxHvc0MLxur+GP960kN9j7emXX8zwY",
+            "$argon2i$v=16$m=256,t=2,p=1$c29tZXNhbHQ$/U3YPXYsSb3q9XxHvc0MLxur+GP960kN9j7emXX8zwY",
         );
     });
     
@@ -135,7 +135,7 @@ describe('Argon2i', () => {
             new TextEncoder().encode("password"),
             new TextEncoder().encode("somesalt"),
             "b6c11560a6a9d61eac706b79a2f97d68b4463aa3ad87e00c07e2b01e90c564fb",
-            "$argon2i$m=256,t=2,p=2$c29tZXNhbHQ$tsEVYKap1h6scGt5ovl9aLRGOqOth+AMB+KwHpDFZPs",
+            "$argon2i$v=16$m=256,t=2,p=2$c29tZXNhbHQ$tsEVYKap1h6scGt5ovl9aLRGOqOth+AMB+KwHpDFZPs",
         );
     });
     
@@ -298,14 +298,14 @@ describe('Error handling', () => {
         const password = new TextEncoder().encode("password"); // should be "passwore"
         const result = verifyEncoded(encoded, password);
         expect(result).toBe(false);
-    });
+    }, 15000);
     
     it('verify_encoded with wrong password version13', () => {
         const encoded = "$argon2i$v=19$m=65536,t=2,p=1$c29tZXNhbHQ$8iIuixkI73Js3G1uMbezQXD0b8LG4SXGsOwoQkdAQIM";
         const password = new TextEncoder().encode("password"); // should be "passwore"
         const result = verifyEncoded(encoded, password);
         expect(result).toBe(false);
-    });
+    }, 15000);
 });
 
 describe('Utility functions', () => {

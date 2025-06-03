@@ -7,12 +7,12 @@ export default {
   output: [
     {
       file: "dist/index.js",
-      format: "cjs",
+      format: "es",
       sourcemap: true,
     },
     {
       file: "dist/index.esm.js",
-      format: "es",
+      format: "esm",
       sourcemap: true,
     },
   ],

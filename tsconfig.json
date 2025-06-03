@@ -9,7 +9,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "declaration": true,
-    "declarationDir": "./dist/types",
     "sourceMap": true,
     "lib": ["ESNext"],
     "types": ["bun-types"]

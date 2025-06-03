@@ -1,6 +1,6 @@
 {
   "name": "@hicaru/argon2-pure.js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Pure JavaScript implementation of Argon2 password hashing algorithm",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

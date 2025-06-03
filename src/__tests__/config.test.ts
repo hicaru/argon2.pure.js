@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { Config } from '../config';
-import { Variant } from '../variant';
-import { Version } from '../version';
+import { describe, it, expect } from "vitest";
+import { Config } from "../config";
+import { Variant } from "../variant";
+import { Version } from "../version";
 
-describe('Config', () => {
-  it('default returns correct instance', () => {
+describe("Config", () => {
+  it("default returns correct instance", () => {
     const config = new Config();
     expect(config.ad.length).toBe(0);
     expect(config.hashLength).toBe(32);
@@ -16,7 +16,7 @@ describe('Config', () => {
     expect(config.version).toBe(Version.Version13);
   });
 
-  it('original returns correct instance', () => {
+  it("original returns correct instance", () => {
     const config = Config.original();
     expect(config.ad.length).toBe(0);
     expect(config.hashLength).toBe(32);
@@ -28,7 +28,7 @@ describe('Config', () => {
     expect(config.version).toBe(Version.Version13);
   });
 
-  it('owasp1 returns correct instance', () => {
+  it("owasp1 returns correct instance", () => {
     const config = Config.owasp1();
     expect(config.ad.length).toBe(0);
     expect(config.hashLength).toBe(32);
@@ -40,7 +40,7 @@ describe('Config', () => {
     expect(config.version).toBe(Version.Version13);
   });
 
-  it('owasp2 returns correct instance', () => {
+  it("owasp2 returns correct instance", () => {
     const config = Config.owasp2();
     expect(config.ad.length).toBe(0);
     expect(config.hashLength).toBe(32);
@@ -52,7 +52,7 @@ describe('Config', () => {
     expect(config.version).toBe(Version.Version13);
   });
 
-  it('rfc9106 returns correct instance', () => {
+  it("rfc9106 returns correct instance", () => {
     const config = Config.rfc9106();
     expect(config.ad.length).toBe(0);
     expect(config.hashLength).toBe(32);
@@ -64,4 +64,3 @@ describe('Config', () => {
     expect(config.version).toBe(Version.Version13);
   });
 });
-

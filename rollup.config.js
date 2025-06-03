@@ -7,12 +7,12 @@ export default {
   output: [
     {
       file: "dist/index.js",
-      format: "es",
+      format: "cjs",
       sourcemap: true,
     },
     {
       file: "dist/index.esm.js",
-      format: "esm",
+      format: "es",
       sourcemap: true,
     },
   ],
@@ -22,5 +22,5 @@ export default {
     typescript({
       tsconfig: "./tsconfig.json",
     }),
-  ]
+  ],
 };
